@@ -1,10 +1,14 @@
 package com.example.myapplicationm3
 
+import android.Manifest
 import android.content.Context
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -34,14 +38,37 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
-import com.example.myapplicationm3.media3.common.DownloadUtil
-import com.example.myapplicationm3.media3.common.MediaItemTag
 import com.example.myapplicationm3.ui.theme.MyApplicationM3Theme
+import com.example.mylibrary.common.DownloadUtil
+import com.example.mylibrary.common.MediaItemTag
 
 @UnstableApi
 class MainActivity2 : ComponentActivity() {
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private val requestPermissionLauncher =
+        this.registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (isGranted) {
+                Toast.makeText(
+                    this,
+                    "Permission granted!",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+            } else {
+                Toast.makeText(
+                    this,
+                    "Permission not granted!",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
         setContent {
             MyApplicationM3Theme {
                 // A surface container using the 'background' color from the theme
@@ -122,6 +149,9 @@ fun OnlineScreen() {
                 PlayerView(context).apply {
                     player = exoPlayer
                     setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS)
+                    setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
+                    setShowSubtitleButton(true)
+
                 }
             }
         )

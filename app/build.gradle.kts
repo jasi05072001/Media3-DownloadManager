@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.myapplicationm3"
-        minSdk = 24
+        minSdk = 25
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -80,4 +80,6 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer-dash:$version")
     implementation("androidx.media3:media3-exoplayer-hls:$version")
     implementation("androidx.media3:media3-datasource-cronet:$version")
+
+    implementation(project(":mylibrary"))
 }

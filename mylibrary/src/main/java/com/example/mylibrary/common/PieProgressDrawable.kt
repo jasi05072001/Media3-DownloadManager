@@ -1,4 +1,4 @@
-package com.example.myapplicationm3.media3.common
+package com.example.mylibrary.common
 
 import android.graphics.Canvas
 import android.graphics.ColorFilter

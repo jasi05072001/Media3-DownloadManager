@@ -1,4 +1,4 @@
-package com.example.myapplicationm3.media3.common
+package com.example.mylibrary.common
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -26,7 +26,7 @@ import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.offline.DownloadService
 import androidx.media3.exoplayer.source.TrackGroupArray
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
-import com.example.myapplicationm3.R
+import com.example.mylibrary.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay

@@ -1,4 +1,4 @@
-package com.example.myapplicationm3.media3.common
+package com.example.mylibrary.common
 
 data class MediaItemTag(
     val duration: Long,

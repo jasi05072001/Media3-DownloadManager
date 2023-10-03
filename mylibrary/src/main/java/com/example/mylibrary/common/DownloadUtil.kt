@@ -1,4 +1,4 @@
-package com.example.myapplicationm3.media3.common
+package com.example.mylibrary.common
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -15,7 +15,7 @@ import androidx.media3.datasource.cronet.CronetDataSource
 import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadManager
 import androidx.media3.exoplayer.offline.DownloadNotificationHelper
-import com.example.myapplicationm3.R
+import com.example.mylibrary.R
 import org.chromium.net.CronetEngine
 import java.io.File
 import java.util.concurrent.Executors

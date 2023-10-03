@@ -41,7 +41,7 @@
         </activity>
 
         <service
-            android:name=".media3.common.MyDownloadService"
+            android:name="com.example.mylibrary.common.MyDownloadService"
             android:exported="true">
 
             <!-- This is needed for Scheduler -->

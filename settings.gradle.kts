@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "My ApplicationM3"
 include(":app")
- 
+include(":mylibrary")
