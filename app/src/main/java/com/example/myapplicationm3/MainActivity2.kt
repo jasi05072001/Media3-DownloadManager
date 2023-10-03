@@ -18,9 +18,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
@@ -100,6 +103,7 @@ fun GreetingPreview() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @UnstableApi
 @Composable
 fun OnlineScreen() {
@@ -128,96 +132,117 @@ fun OnlineScreen() {
                 override fun onPlayerError(error: PlaybackException) {
                     Toast.makeText(context, error.message, Toast.LENGTH_SHORT).show()
                 }
-
                 override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
                     Toast.makeText(context, mediaMetadata.title, Toast.LENGTH_SHORT).show()
                 }
             })
         }
     }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(text = "Online Screen")
+                }
+            )
+        },
+        bottomBar = {
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        Spacer(modifier = Modifier.height(10.dp))
-
-        AndroidView(
+        }
+    ) {paddingValues ->
+        Column(
             modifier = Modifier
-                .height(LocalConfiguration.current.screenHeightDp.dp * 0.75f)
+                .padding(paddingValues)
+                .fillMaxSize()
+        ) {
+            Spacer(modifier = Modifier.height(10.dp))
+
+            AndroidView(
+                modifier = Modifier
+                    .height(LocalConfiguration.current.screenHeightDp.dp * 0.40f)
+                    .fillMaxWidth(),
+                factory = { context ->
+                    PlayerView(context).apply {
+                        player = exoPlayer
+                        setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS)
+                        setShowSubtitleButton(true)
+                        setBackgroundColor(context.getColor(R.color.transparent))
+
+                    }
+                }
+            )
+
+            Spacer(modifier = Modifier.height(25.dp))
+
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+
+                Button(
+                    onClick = {
+                        extracted(context, mediaItem, exoPlayer)
+                    }
+                ) {
+                    Text(text = "Download")
+                }
+                Button(
+                    onClick = {
+                        DownloadUtil.getDownloadTracker(context)
+                            .pauseDownload(mediaItem.localConfiguration?.uri)
+                    }
+                ) {
+                    Text(text = "Pause")
+                }
+            }
+            Spacer(modifier = Modifier.height(15.dp))
+
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                Button(
+                    onClick = {
+                        DownloadUtil.getDownloadTracker(context)
+                            .resumeDownload(mediaItem.localConfiguration?.uri)
+                    }
+                ) {
+                    Text(text = "Resume")
+                }
+
+                Button(
+                    onClick = {
+                        DownloadUtil.getDownloadTracker(context)
+                            .removeDownload(mediaItem.localConfiguration?.uri)
+                    }
+                ) {
+                    Text(text = "Remove")
+                }
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            Button(modifier = Modifier
+                .padding(horizontal = 15.dp)
                 .fillMaxWidth(),
-            factory = { context ->
-                PlayerView(context).apply {
-                    player = exoPlayer
-                    setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS)
-                    setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
-                    setShowSubtitleButton(true)
-
-                }
-            }
-        )
-
-
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-
-            Button(
                 onClick = {
-                    extracted( context, mediaItem, exoPlayer)
-                }
-            ) {
-                Text(text = "Download")
-            }
-            Button(
-                onClick = {
-                    DownloadUtil.getDownloadTracker(context).pauseDownload(mediaItem.localConfiguration?.uri)
-                }
-            ) {
-                Text(text = "Pause")
+
+                    val list = listOf(240, 480, 720, 1080)
+                    val a = 620
+
+                    // Find the closest element in the list to 'a'
+                    val closestElement = list.minByOrNull { abs(it - a) }
+
+                    if (closestElement != null) {
+                        val result = "Closest element to $a is $closestElement"
+                        println(result)
+                    } else {
+                        println("The list is empty")
+                    }
+
+                }) {
+                Text(text = "Closest")
             }
         }
-
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            Button(
-                onClick = {
-                    DownloadUtil.getDownloadTracker(context).resumeDownload(mediaItem.localConfiguration?.uri)
-                }
-            ) {
-                Text(text = "Resume")
-            }
-
-            Button(
-                onClick = {
-                    DownloadUtil.getDownloadTracker(context).removeDownload(mediaItem.localConfiguration?.uri)
-                }
-            ) {
-                Text(text = "Remove")
-            }
-        }
-        Spacer(modifier = Modifier.height(10.dp))
-        Button(modifier = Modifier
-            .padding(horizontal = 15.dp)
-            .fillMaxWidth(),
-            onClick = {
-
-                val list = listOf(240, 480, 720, 1080)
-                val a = 620
-
-// Find the closest element in the list to 'a'
-                val closestElement = list.minByOrNull { abs(it - a) }
-
-                if (closestElement != null) {
-                    val result = "Closest element to $a is $closestElement"
-                    println(result)
-                } else {
-                    println("The list is empty")
-                }
-
-            }) {
-            Text(text= "Closest")
-        }
+        Spacer(modifier = Modifier.height(15.dp))
     }
 
     DisposableEffect(Unit){

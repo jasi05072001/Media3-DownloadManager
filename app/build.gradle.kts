@@ -72,6 +72,9 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
+    val navVersion = "2.7.3"
+    implementation ("androidx.navigation:navigation-compose:$navVersion")
+
     val version = "1.1.1"
 
     implementation("androidx.media3:media3-exoplayer:$version")
