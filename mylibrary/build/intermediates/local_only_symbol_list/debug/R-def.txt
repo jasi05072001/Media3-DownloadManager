@@ -1,0 +1,20 @@
+R_DEF: Internal format may change without notice
+local
+drawable download
+drawable download_done
+drawable error
+id cancel_download
+id delete_download
+id pause_download
+id resume_download
+menu popup_menu
+string dialog_option
+string download_start_error
+string exo_download_completed
+string exo_download_downloading
+string exo_download_failed
+string exo_download_notification_channel_name
+string exo_download_queued
+string exo_download_removing
+string exo_download_restarting
+string exo_download_stopped

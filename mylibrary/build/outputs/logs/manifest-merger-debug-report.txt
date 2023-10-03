@@ -1,0 +1,24 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /home/jasmeet/AndroidStudioProjects/MyApplicationM3/mylibrary/src/main/AndroidManifest.xml:2:1-6:12
+INJECTED from /home/jasmeet/AndroidStudioProjects/MyApplicationM3/mylibrary/src/main/AndroidManifest.xml:2:1-6:12
+	package
+		INJECTED from /home/jasmeet/AndroidStudioProjects/MyApplicationM3/mylibrary/src/main/AndroidManifest.xml
+	xmlns:android
+		ADDED from /home/jasmeet/AndroidStudioProjects/MyApplicationM3/mylibrary/src/main/AndroidManifest.xml:2:11-69
+uses-permission#android.permission.RECEIVE_BOOT_COMPLETED
+ADDED from /home/jasmeet/AndroidStudioProjects/MyApplicationM3/mylibrary/src/main/AndroidManifest.xml:4:5-81
+	android:name
+		ADDED from /home/jasmeet/AndroidStudioProjects/MyApplicationM3/mylibrary/src/main/AndroidManifest.xml:4:22-78
+uses-permission#android.permission.POST_NOTIFICATIONS
+ADDED from /home/jasmeet/AndroidStudioProjects/MyApplicationM3/mylibrary/src/main/AndroidManifest.xml:5:5-76
+	android:name
+		ADDED from /home/jasmeet/AndroidStudioProjects/MyApplicationM3/mylibrary/src/main/AndroidManifest.xml:5:22-74
+uses-sdk
+INJECTED from /home/jasmeet/AndroidStudioProjects/MyApplicationM3/mylibrary/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /home/jasmeet/AndroidStudioProjects/MyApplicationM3/mylibrary/src/main/AndroidManifest.xml
+INJECTED from /home/jasmeet/AndroidStudioProjects/MyApplicationM3/mylibrary/src/main/AndroidManifest.xml
+	android:targetSdkVersion
+		INJECTED from /home/jasmeet/AndroidStudioProjects/MyApplicationM3/mylibrary/src/main/AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from /home/jasmeet/AndroidStudioProjects/MyApplicationM3/mylibrary/src/main/AndroidManifest.xml
