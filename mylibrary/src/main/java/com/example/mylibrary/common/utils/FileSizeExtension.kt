@@ -1,4 +1,4 @@
-package com.example.mylibrary.common
+package com.example.mylibrary.common.utils
 
 import java.text.DecimalFormat
 

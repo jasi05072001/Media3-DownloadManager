@@ -1,4 +1,4 @@
-package com.example.mylibrary.common
+package com.example.mylibrary.common.utils
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -16,6 +16,7 @@ import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadManager
 import androidx.media3.exoplayer.offline.DownloadNotificationHelper
 import com.example.mylibrary.R
+import com.example.mylibrary.common.downloadTracker.DownloadTracker
 import org.chromium.net.CronetEngine
 import java.io.File
 import java.util.concurrent.Executors

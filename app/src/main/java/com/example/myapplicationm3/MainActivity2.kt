@@ -9,20 +9,20 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -32,15 +32,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
-import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.example.myapplicationm3.ui.theme.MyApplicationM3Theme
-import com.example.mylibrary.common.DownloadUtil
-import com.example.mylibrary.common.MediaItemTag
+import com.example.mylibrary.common.utils.DownloadUtil
+import com.example.mylibrary.common.utils.MediaItemTag
+import kotlin.math.abs
 
 @UnstableApi
 class MainActivity2 : ComponentActivity() {
@@ -77,6 +77,7 @@ class MainActivity2 : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     OnlineScreen()
+//                    SortedMap()
                 }
             }
         }
@@ -102,15 +103,12 @@ fun GreetingPreview() {
 @UnstableApi
 @Composable
 fun OnlineScreen() {
-    val url = "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8"
+    val url = "https://www.4sync.com/web/directDownload/ROGREMlQ/nAXet_ZV.c002de9de273dae17b829f1f7370ce1f"
 
-    val showLoading = remember {
-        mutableStateOf(false)
-    }
 
     val mediaItem= MediaItem.Builder()
         .setUri(url)
-        .setMimeType(MimeTypes.APPLICATION_M3U8)
+        .setMimeType("video/x-matroska")
         .setMediaMetadata(
             MediaMetadata.Builder().setTitle("Meta data").build()
         )
@@ -157,22 +155,70 @@ fun OnlineScreen() {
         )
 
 
-
-        Button(
-            onClick = {
-                extracted(showLoading, context, mediaItem, exoPlayer)
-
-
-            }
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            Text(text = "Download")
+
+            Button(
+                onClick = {
+                    extracted( context, mediaItem, exoPlayer)
+                }
+            ) {
+                Text(text = "Download")
+            }
+            Button(
+                onClick = {
+                    DownloadUtil.getDownloadTracker(context).pauseDownload(mediaItem.localConfiguration?.uri)
+                }
+            ) {
+                Text(text = "Pause")
+            }
         }
 
-    }
-    if (showLoading.value){
-        CircularProgressIndicator()
-    }
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Button(
+                onClick = {
+                    DownloadUtil.getDownloadTracker(context).resumeDownload(mediaItem.localConfiguration?.uri)
+                }
+            ) {
+                Text(text = "Resume")
+            }
 
+            Button(
+                onClick = {
+                    DownloadUtil.getDownloadTracker(context).removeDownload(mediaItem.localConfiguration?.uri)
+                }
+            ) {
+                Text(text = "Remove")
+            }
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+        Button(modifier = Modifier
+            .padding(horizontal = 15.dp)
+            .fillMaxWidth(),
+            onClick = {
+
+                val list = listOf(240, 480, 720, 1080)
+                val a = 620
+
+// Find the closest element in the list to 'a'
+                val closestElement = list.minByOrNull { abs(it - a) }
+
+                if (closestElement != null) {
+                    val result = "Closest element to $a is $closestElement"
+                    println(result)
+                } else {
+                    println("The list is empty")
+                }
+
+            }) {
+            Text(text= "Closest")
+        }
+    }
 
     DisposableEffect(Unit){
         onDispose {
@@ -185,19 +231,13 @@ fun OnlineScreen() {
 
 
 private fun extracted(
-    showLoading: MutableState<Boolean>,
     context: Context,
     mediaItem: MediaItem,
     exoPlayer: ExoPlayer
 ) {
-    showLoading.value = true
-
     try {
-
-
         if (DownloadUtil.getDownloadTracker(context).isDownloaded(mediaItem)) {
             Toast.makeText(context, "Already Downloaded", Toast.LENGTH_SHORT).show()
-            showLoading.value = false
         } else {
             val item = mediaItem.buildUpon()
                 .setTag(
@@ -206,12 +246,9 @@ private fun extracted(
                 )
                 .build()
 
-            showLoading.value = false
-
             if (!DownloadUtil.getDownloadTracker(context)
                     .hasDownload(item.localConfiguration?.uri)
             ) {
-                showLoading.value = false
                 DownloadUtil.getDownloadTracker(context)
                     .toggleDownloadDialogHelper(context, item)
                 Toast.makeText(context, "Downloading....", Toast.LENGTH_SHORT).show()
@@ -220,5 +257,4 @@ private fun extracted(
     } catch (e: Exception) {
         Toast.makeText(context, e.message.toString(), Toast.LENGTH_SHORT).show()
     }
-    showLoading.value = false
 }

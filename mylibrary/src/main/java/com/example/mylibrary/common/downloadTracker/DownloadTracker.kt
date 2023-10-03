@@ -1,4 +1,4 @@
-package com.example.mylibrary.common
+package com.example.mylibrary.common.downloadTracker
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -27,6 +27,10 @@ import androidx.media3.exoplayer.offline.DownloadService
 import androidx.media3.exoplayer.source.TrackGroupArray
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import com.example.mylibrary.R
+import com.example.mylibrary.common.utils.DownloadUtil
+import com.example.mylibrary.common.utils.MediaItemTag
+import com.example.mylibrary.common.utils.formatFileSize
+import com.example.mylibrary.common.service.MyDownloadService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -36,6 +40,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.util.concurrent.CopyOnWriteArraySet
+
 
 private const val TAG = "DownloadTracker"
 private const val DEFAULT_BITRATE = 500_000
@@ -60,7 +65,7 @@ class DownloadTracker(
     private val applicationContext: Context = context.applicationContext
     private val listeners: CopyOnWriteArraySet<Listener> = CopyOnWriteArraySet()
     private val downloadIndex: DownloadIndex = downloadManager.downloadIndex
-    private var startDownloadDialogHelper: StartDownloadDialogHelper? = null
+    private var startDownloadHlsDialogHelper: StartDownloadHlsDialogHelper? = null
     private var availableBytesLeft: Long =
         StatFs(DownloadUtil.getDownloadDirectory(context).path).availableBytes
 
@@ -95,17 +100,20 @@ class DownloadTracker(
 
     fun toggleDownloadDialogHelper(
         context: Context, mediaItem: MediaItem,
-        positiveCallback: (() -> Unit)? = null, dismissCallback: (() -> Unit)? = null
-    ) {
-        startDownloadDialogHelper?.release()
-        startDownloadDialogHelper =
-            StartDownloadDialogHelper(
-                context,
-                getDownloadHelper(mediaItem),
-                mediaItem,
-                positiveCallback,
-                dismissCallback
-            )
+        positiveCallback: (() -> Unit)? = null, dismissCallback: (() -> Unit)? = null,
+        quality : Int? = null
+
+        ) {
+        startDownloadHlsDialogHelper?.release()
+            startDownloadHlsDialogHelper =
+                StartDownloadHlsDialogHelper(
+                    context,
+                    getDownloadHelper(mediaItem),
+                    mediaItem,
+                    positiveCallback,
+                    dismissCallback,
+                    quality
+                )
     }
 
     fun toggleDownloadPopupMenu(context: Context, anchor: View, uri: Uri?) {
@@ -165,6 +173,26 @@ class DownloadTracker(
             )
         }
     }
+    fun pauseDownload(uri: Uri?) {
+        val download = downloads[uri]
+        download?.let {
+            DownloadService.sendPauseDownloads(
+                applicationContext,
+                MyDownloadService::class.java,
+                false
+            )
+        }
+    }
+    fun resumeDownload(uri: Uri?) {
+        val download = downloads[uri]
+        download?.let {
+            DownloadService.sendResumeDownloads(
+                applicationContext,
+                MyDownloadService::class.java,
+                true
+            )
+        }
+    }
 
     private fun loadDownloads() {
         try {
@@ -193,7 +221,8 @@ class DownloadTracker(
             downloadManager.currentDownloads.find { it.request.uri == uri }?.percentDownloaded
         return callbackFlow {
             while (percent != null) {
-                percent = downloadManager.currentDownloads.find { it.request.uri == uri }?.percentDownloaded
+                percent =
+                    downloadManager.currentDownloads.find { it.request.uri == uri }?.percentDownloaded
                 trySend(percent).isSuccess
                 withContext(Dispatchers.IO) {
                     delay(1000)
@@ -251,12 +280,13 @@ class DownloadTracker(
 
     // Can't use applicationContext because it'll result in a crash, instead
     // Use context of the activity calling for the AlertDialog
-    private inner class StartDownloadDialogHelper(
+    private inner class StartDownloadHlsDialogHelper(
         private val context: Context,
         private val downloadHelper: DownloadHelper,
         private val mediaItem: MediaItem,
         private val positiveCallback: (() -> Unit)? = null,
-        private val dismissCallback: (() -> Unit)? = null
+        private val dismissCallback: (() -> Unit)? = null,
+        quality: Int?
     ) : DownloadHelper.Callback {
 
         private var trackSelectionDialog: AlertDialog? = null
@@ -373,7 +403,7 @@ class DownloadTracker(
                 .show()
             Log.e(
                 TAG,
-                if(e is DownloadHelper.LiveContentUnsupportedException) "Downloading live content unsupported" else "Failed to start download",
+                if (e is DownloadHelper.LiveContentUnsupportedException) "Downloading live content unsupported" else "Failed to start download",
                 e
             )
         }

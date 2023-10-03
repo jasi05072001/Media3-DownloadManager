@@ -11,12 +11,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.MimeTypes
-import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import com.example.myapplicationm3.databinding.ActivityMainBinding
-import com.example.mylibrary.common.DownloadUtil
-import com.example.mylibrary.common.MediaItemTag
+import com.example.mylibrary.common.utils.DownloadUtil
+import com.example.mylibrary.common.utils.MediaItemTag
 
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
@@ -53,7 +52,7 @@ class MainActivity : AppCompatActivity() {
             .setMediaMetadata(
                 MediaMetadata.Builder().setTitle("Meta data").build()
             )
-            .setTag(com.example.mylibrary.common.MediaItemTag(-1, "Meta data"))
+            .setTag(MediaItemTag(-1, "Meta data"))
             .build()
 
 
@@ -72,7 +71,7 @@ class MainActivity : AppCompatActivity() {
 
         val  exoPlayer = ExoPlayer.Builder(this)
             .setMediaSourceFactory(
-                DefaultMediaSourceFactory(com.example.mylibrary.common.DownloadUtil.getReadOnlyDataSourceFactory(this))
+                DefaultMediaSourceFactory(DownloadUtil.getReadOnlyDataSourceFactory(this))
             ).build()
             .apply {
                 playWhenReady = true
@@ -83,7 +82,7 @@ class MainActivity : AppCompatActivity() {
         binding.player.player = exoPlayer
 
         binding.downloadState. setOnClickListener {
-            if(com.example.mylibrary.common.DownloadUtil.getDownloadTracker(this).isDownloaded(mediaItem)) {
+            if(DownloadUtil.getDownloadTracker(this).isDownloaded(mediaItem)) {
                 Toast.makeText(
                     this,
                     "You've already downloaded the video",
@@ -91,15 +90,15 @@ class MainActivity : AppCompatActivity() {
                 ).show()
             } else {
                 val item = mediaItem.buildUpon()
-                    .setTag((mediaItem.localConfiguration?.tag as com.example.mylibrary.common.MediaItemTag)
+                    .setTag((mediaItem.localConfiguration?.tag as MediaItemTag)
                         .copy(duration = exoPlayer.duration))
                     .build()
                 Log.d("Duration", exoPlayer.duration.toString())
 
-                if(!com.example.mylibrary.common.DownloadUtil.getDownloadTracker(this@MainActivity)
+                if(!DownloadUtil.getDownloadTracker(this@MainActivity)
                         .hasDownload(item.localConfiguration?.uri)
                 ) {
-                    com.example.mylibrary.common.DownloadUtil.getDownloadTracker(this@MainActivity)
+                    DownloadUtil.getDownloadTracker(this@MainActivity)
                         .toggleDownloadDialogHelper(this@MainActivity, item)
                 }
             }

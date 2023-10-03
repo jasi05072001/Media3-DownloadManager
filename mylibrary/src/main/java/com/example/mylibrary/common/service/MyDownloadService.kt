@@ -1,4 +1,4 @@
-package com.example.mylibrary.common
+package com.example.mylibrary.common.service
 
 import android.annotation.SuppressLint
 import android.app.Notification
@@ -11,17 +11,16 @@ import androidx.media3.exoplayer.offline.DownloadNotificationHelper
 import androidx.media3.exoplayer.offline.DownloadService
 import androidx.media3.exoplayer.scheduler.PlatformScheduler
 import com.example.mylibrary.R
-import com.example.mylibrary.common.DownloadUtil.DOWNLOAD_NOTIFICATION_CHANNEL_ID
+import com.example.mylibrary.common.utils.DownloadUtil
 
 
 private const val JOB_ID = 8888
-private const val FOREGROUND_NOTIFICATION_ID = 8989
-
+const val FOREGROUND_NOTIFICATION_ID = 8989
 @SuppressLint("UnsafeOptInUsageError")
 class MyDownloadService : DownloadService(
     FOREGROUND_NOTIFICATION_ID,
     DEFAULT_FOREGROUND_NOTIFICATION_UPDATE_INTERVAL,
-    DOWNLOAD_NOTIFICATION_CHANNEL_ID,
+    DownloadUtil.DOWNLOAD_NOTIFICATION_CHANNEL_ID,
     R.string.exo_download_notification_channel_name,
     0
 ) {
@@ -91,6 +90,7 @@ class MyDownloadService : DownloadService(
                         null,
                         Util.fromUtf8Bytes(download.request.data)
                     )
+
                 }
                 Download.STATE_FAILED -> {
                     notificationHelper.buildDownloadFailedNotification(
