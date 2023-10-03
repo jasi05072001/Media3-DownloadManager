@@ -10,4 +10,5 @@
     <string name="exo_download_restarting">Download restarting</string>
     <string name="exo_download_notification_channel_name">DownloadManager</string>
     <string name="download_start_error">Failed to start Download\n</string>
+    <string name="title_activity_main2">MainActivity2</string>
 </resources>
