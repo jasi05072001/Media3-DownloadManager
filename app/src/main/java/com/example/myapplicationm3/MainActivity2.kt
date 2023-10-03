@@ -175,7 +175,10 @@ fun OnlineScreen() {
 
 
     DisposableEffect(Unit){
-        onDispose { exoPlayer.release() }
+        onDispose {
+            exoPlayer.stop()
+            exoPlayer.release()
+        }
     }
 
 }
