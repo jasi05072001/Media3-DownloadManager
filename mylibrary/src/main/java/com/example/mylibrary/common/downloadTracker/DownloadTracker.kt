@@ -16,7 +16,12 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.common.TrackGroup
 import androidx.media3.common.util.Assertions
 import androidx.media3.common.util.Util
+import androidx.media3.database.DatabaseProvider
+import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.HttpDataSource
+import androidx.media3.datasource.cache.Cache
+import androidx.media3.datasource.cache.NoOpCacheEvictor
+import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadHelper
@@ -27,10 +32,10 @@ import androidx.media3.exoplayer.offline.DownloadService
 import androidx.media3.exoplayer.source.TrackGroupArray
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import com.example.mylibrary.R
+import com.example.mylibrary.common.service.MyDownloadService
 import com.example.mylibrary.common.utils.DownloadUtil
 import com.example.mylibrary.common.utils.MediaItemTag
 import com.example.mylibrary.common.utils.formatFileSize
-import com.example.mylibrary.common.service.MyDownloadService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -38,6 +43,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.io.IOException
 import java.util.concurrent.CopyOnWriteArraySet
 
@@ -60,6 +66,20 @@ class DownloadTracker(
          */
         fun onDownloadsChanged(download: Download)
 
+    }
+
+    companion object{
+        private var downloadCache: Cache? = null
+        fun getDownloadCache(context: Context): Cache {
+            return downloadCache ?: SimpleCache(getDownloadContentDirectory(context), NoOpCacheEvictor(), getDataBase(context))
+                .also { downloadCache = it }
+        }
+        private fun getDownloadContentDirectory(context: Context): File {
+            return File(context.getExternalFilesDir(null), "Downloads")
+        }
+        private fun getDataBase(context: Context): DatabaseProvider {
+            return StandaloneDatabaseProvider(context)
+        }
     }
 
     private val applicationContext: Context = context.applicationContext
@@ -103,17 +123,17 @@ class DownloadTracker(
         positiveCallback: (() -> Unit)? = null, dismissCallback: (() -> Unit)? = null,
         quality : Int? = null
 
-        ) {
+    ) {
         startDownloadHlsDialogHelper?.release()
-            startDownloadHlsDialogHelper =
-                StartDownloadHlsDialogHelper(
-                    context,
-                    getDownloadHelper(mediaItem),
-                    mediaItem,
-                    positiveCallback,
-                    dismissCallback,
-                    quality
-                )
+        startDownloadHlsDialogHelper =
+            StartDownloadHlsDialogHelper(
+                context,
+                getDownloadHelper(mediaItem),
+                mediaItem,
+                positiveCallback,
+                dismissCallback,
+                quality
+            )
     }
 
     fun toggleDownloadPopupMenu(context: Context, anchor: View, uri: Uri?) {
@@ -425,4 +445,6 @@ class DownloadTracker(
             )
         }
     }
+
+
 }

@@ -2,10 +2,13 @@ package com.example.mylibrary.common.utils
 
 import android.annotation.SuppressLint
 import android.content.Context
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.database.DatabaseProvider
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.CacheDataSource
@@ -15,10 +18,14 @@ import androidx.media3.datasource.cronet.CronetDataSource
 import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadManager
 import androidx.media3.exoplayer.offline.DownloadNotificationHelper
+import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import com.example.mylibrary.R
 import com.example.mylibrary.common.downloadTracker.DownloadTracker
 import org.chromium.net.CronetEngine
 import java.io.File
+import java.net.CookieHandler
+import java.net.CookieManager
+import java.net.CookiePolicy
 import java.util.concurrent.Executors
 
 @SuppressLint("UnsafeOptInUsageError")
@@ -145,6 +152,52 @@ object DownloadUtil {
         if(!DownloadUtil::databaseProvider.isInitialized) databaseProvider =
             StandaloneDatabaseProvider(context)
         return databaseProvider
+    }
+
+    private fun playDownloadedContent(context: Context): DataSource.Factory{
+
+        val httpDataSourceFactory: DefaultHttpDataSource.Factory = getHttpDataSourceFactory()
+
+        val cacheDataSource : DataSource.Factory = CacheDataSource.Factory()
+            .setCache(DownloadTracker.getDownloadCache(context))
+            .setUpstreamDataSourceFactory(httpDataSourceFactory)
+            .setCacheWriteDataSinkFactory(null)
+
+
+        return cacheDataSource
+    }
+
+    private fun getHttpDataSourceFactory(): DefaultHttpDataSource.Factory {
+        val httpDataSourceFactory:  DefaultHttpDataSource.Factory?
+        val cookieManager = CookieManager()
+        cookieManager.setCookiePolicy(CookiePolicy.ACCEPT_ORIGINAL_SERVER)
+        CookieHandler.setDefault(cookieManager)
+        httpDataSourceFactory = DefaultHttpDataSource.Factory()
+        return httpDataSourceFactory
+    }
+
+    fun returnCachedMediaSource(context: Context): ProgressiveMediaSource {
+
+        val cachedDataSourceFactory = playDownloadedContent(context)
+
+        val url = "https://www.4sync.com/web/directDownload/ROGREMlQ/nAXet_ZV.c002de9de273dae17b829f1f7370ce1f"
+
+
+        val mediaItem= MediaItem.Builder()
+            .setUri(url)
+            .setMimeType("video/x-matroska")
+            .setMediaMetadata(
+                MediaMetadata.Builder().setTitle("Meta data").build()
+            )
+            .setTag(MediaItemTag(-1, "Meta data"))
+            .build()
+
+
+        val mediaSource = ProgressiveMediaSource.Factory(cachedDataSourceFactory)
+            .createMediaSource(
+                mediaItem
+            )
+        return mediaSource
     }
 
 

@@ -40,6 +40,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
+import com.example.myapplicationm3.screens.Navigator
 import com.example.myapplicationm3.ui.theme.MyApplicationM3Theme
 import com.example.mylibrary.common.utils.DownloadUtil
 import com.example.mylibrary.common.utils.MediaItemTag
@@ -79,8 +80,9 @@ class MainActivity2 : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    OnlineScreen()
+//                    OnlineScreen()
 //                    SortedMap()
+                    Navigator()
                 }
             }
         }
@@ -103,183 +105,3 @@ fun GreetingPreview() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@UnstableApi
-@Composable
-fun OnlineScreen() {
-    val url = "https://www.4sync.com/web/directDownload/ROGREMlQ/nAXet_ZV.c002de9de273dae17b829f1f7370ce1f"
-
-
-    val mediaItem= MediaItem.Builder()
-        .setUri(url)
-        .setMimeType("video/x-matroska")
-        .setMediaMetadata(
-            MediaMetadata.Builder().setTitle("Meta data").build()
-        )
-        .setTag(MediaItemTag(-1, "Meta data"))
-        .build()
-
-
-    val context = LocalContext.current
-
-
-    val exoPlayer = remember {
-        ExoPlayer.Builder(context).build().apply {
-            playWhenReady = true
-            setMediaItem(mediaItem)
-            prepare()
-            addListener(object : Player.Listener {
-                override fun onPlayerError(error: PlaybackException) {
-                    Toast.makeText(context, error.message, Toast.LENGTH_SHORT).show()
-                }
-                override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
-                    Toast.makeText(context, mediaMetadata.title, Toast.LENGTH_SHORT).show()
-                }
-            })
-        }
-    }
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(text = "Online Screen")
-                }
-            )
-        },
-        bottomBar = {
-
-        }
-    ) {paddingValues ->
-        Column(
-            modifier = Modifier
-                .padding(paddingValues)
-                .fillMaxSize()
-        ) {
-            Spacer(modifier = Modifier.height(10.dp))
-
-            AndroidView(
-                modifier = Modifier
-                    .height(LocalConfiguration.current.screenHeightDp.dp * 0.40f)
-                    .fillMaxWidth(),
-                factory = { context ->
-                    PlayerView(context).apply {
-                        player = exoPlayer
-                        setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS)
-                        setShowSubtitleButton(true)
-                        setBackgroundColor(context.getColor(R.color.transparent))
-
-                    }
-                }
-            )
-
-            Spacer(modifier = Modifier.height(25.dp))
-
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-
-                Button(
-                    onClick = {
-                        extracted(context, mediaItem, exoPlayer)
-                    }
-                ) {
-                    Text(text = "Download")
-                }
-                Button(
-                    onClick = {
-                        DownloadUtil.getDownloadTracker(context)
-                            .pauseDownload(mediaItem.localConfiguration?.uri)
-                    }
-                ) {
-                    Text(text = "Pause")
-                }
-            }
-            Spacer(modifier = Modifier.height(15.dp))
-
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                Button(
-                    onClick = {
-                        DownloadUtil.getDownloadTracker(context)
-                            .resumeDownload(mediaItem.localConfiguration?.uri)
-                    }
-                ) {
-                    Text(text = "Resume")
-                }
-
-                Button(
-                    onClick = {
-                        DownloadUtil.getDownloadTracker(context)
-                            .removeDownload(mediaItem.localConfiguration?.uri)
-                    }
-                ) {
-                    Text(text = "Remove")
-                }
-            }
-            Spacer(modifier = Modifier.height(10.dp))
-            Button(modifier = Modifier
-                .padding(horizontal = 15.dp)
-                .fillMaxWidth(),
-                onClick = {
-
-                    val list = listOf(240, 480, 720, 1080)
-                    val a = 620
-
-                    // Find the closest element in the list to 'a'
-                    val closestElement = list.minByOrNull { abs(it - a) }
-
-                    if (closestElement != null) {
-                        val result = "Closest element to $a is $closestElement"
-                        println(result)
-                    } else {
-                        println("The list is empty")
-                    }
-
-                }) {
-                Text(text = "Closest")
-            }
-        }
-        Spacer(modifier = Modifier.height(15.dp))
-    }
-
-    DisposableEffect(Unit){
-        onDispose {
-            exoPlayer.stop()
-            exoPlayer.release()
-        }
-    }
-
-}
-
-
-private fun extracted(
-    context: Context,
-    mediaItem: MediaItem,
-    exoPlayer: ExoPlayer
-) {
-    try {
-        if (DownloadUtil.getDownloadTracker(context).isDownloaded(mediaItem)) {
-            Toast.makeText(context, "Already Downloaded", Toast.LENGTH_SHORT).show()
-        } else {
-            val item = mediaItem.buildUpon()
-                .setTag(
-                    (mediaItem.localConfiguration?.tag as MediaItemTag)
-                        .copy(duration = exoPlayer.duration)
-                )
-                .build()
-
-            if (!DownloadUtil.getDownloadTracker(context)
-                    .hasDownload(item.localConfiguration?.uri)
-            ) {
-                DownloadUtil.getDownloadTracker(context)
-                    .toggleDownloadDialogHelper(context, item)
-                Toast.makeText(context, "Downloading....", Toast.LENGTH_SHORT).show()
-            }
-        }
-    } catch (e: Exception) {
-        Toast.makeText(context, e.message.toString(), Toast.LENGTH_SHORT).show()
-    }
-}
