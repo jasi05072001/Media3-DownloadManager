@@ -85,12 +85,8 @@ fun  HlsScreen(navController: NavHostController) {
 fun HlsPlayer() {
     val url ="https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.mp4/.m3u8"
 
-//        "https://www.4sync.com/web/directDownload/ROGREMlQ/nAXet_ZV.c002de9de273dae17b829f1f7370ce1f"
-
-
     val mediaItem= MediaItem.Builder()
         .setUri(url)
-//        .setMimeType("video/x-matroska")
         .setMimeType(MimeTypes.APPLICATION_M3U8)
         .setMediaMetadata(
             MediaMetadata.Builder().setTitle("Meta data").build()
@@ -146,7 +142,7 @@ fun HlsPlayer() {
 
             Button(
                 onClick = {
-                    extracted(context, mediaItem, exoPlayer)
+                    download(context, mediaItem, exoPlayer)
                 }
             ) {
                 Text(text = "Download")
@@ -220,7 +216,7 @@ fun HlsPlayer() {
 }
 
 
-private fun extracted(
+private fun download(
     context: Context,
     mediaItem: MediaItem,
     exoPlayer: ExoPlayer

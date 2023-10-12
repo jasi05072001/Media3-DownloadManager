@@ -23,7 +23,7 @@ fun Navigator() {
             SubTitlesScreen(navController)
         }
         composable(Screens.OfflinePlayerScreen.route){
-            OfflinePlayerScreen(navController)
+            OfflinePlayerScreen()
         }
     }
 }

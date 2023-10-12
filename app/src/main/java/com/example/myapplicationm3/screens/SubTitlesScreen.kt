@@ -144,7 +144,7 @@ fun SubTitlesPlayer() {
 
             Button(
                 onClick = {
-                    extracted(context, mediaItem, exoPlayer)
+                    download(context, mediaItem, exoPlayer)
                 }
             ) {
                 Text(text = "Download")
@@ -218,7 +218,7 @@ fun SubTitlesPlayer() {
 }
 
 
-private fun extracted(
+private fun download(
     context: Context,
     mediaItem: MediaItem,
     exoPlayer: ExoPlayer
