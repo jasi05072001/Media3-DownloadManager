@@ -34,6 +34,7 @@ import com.example.mylibrary.common.service.MyDownloadService
 import com.example.mylibrary.common.utils.DownloadUtil
 import com.example.mylibrary.common.utils.MediaItemTag
 import com.example.mylibrary.common.utils.formatFileSize
+import com.example.mylibrary.common.utils.returnClosestElement
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -44,7 +45,6 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 import java.util.concurrent.CopyOnWriteArraySet
-import kotlin.math.abs
 
 
 private const val TAG = "DownloadTracker"
@@ -267,8 +267,6 @@ class DownloadTracker(
         private var trackSelectionDialog: AlertDialog? = null
         var userQuality : Int? = quality
 
-        var closestElement = 0
-
         init {
             downloadHelper.prepare(this)
         }
@@ -327,9 +325,7 @@ class DownloadTracker(
                     (it.bitrate * mediaItemTag.duration).div(8000).formatFileSize()
                 )
             }
-            val qualityLis = formatDownloadable.map { it.height }
-
-            closestElement = qualityLis.minByOrNull { abs(it - userQuality!!) }!!
+            val qualityList = formatDownloadable.map { it.height }
 
             //Default quality download
             qualitySelected = DefaultTrackSelector(context).buildUponParameters()
@@ -372,7 +368,7 @@ class DownloadTracker(
                             (mediaItem.localConfiguration?.tag as MediaItemTag).title,
                             Util.getUtf8Bytes(estimatedContentLength.toString())
                         )
-                      startDownload(downloadRequest)
+                        startDownload(downloadRequest)
                         availableBytesLeft -= estimatedContentLength
                         Log.e(TAG, "availableBytesLeft after calculation: $availableBytesLeft")
                     } else {
@@ -389,6 +385,12 @@ class DownloadTracker(
                     dismissCallback?.invoke()
                 }
             trackSelectionDialog = dialogBuilder.create().apply {
+
+
+                /**
+                 * this if statement will check if the user has already selected a quality and will download the
+                 * selected quality using the value saved in shared preferences
+                 */
 
                 if(DownloadUtil.getQualitySelected(context)>0){
                     dismiss()
@@ -423,7 +425,54 @@ class DownloadTracker(
                         }
                     }
 
-                }else{
+                }
+
+                /**
+                this else if statement will check if the user has selected a quality and will download the
+                developer entered quality at client level
+                 */
+
+                else if (userQuality != null) {
+                    dismiss()
+                    val closestUserQuality = returnClosestElement(qualityList, userQuality!!)
+                    val userSelectedFormat = findSelectedFormat(formatDownloadable, closestUserQuality)
+
+                    if (userSelectedFormat != null){
+                        qualitySelected = DefaultTrackSelector(context).buildUponParameters()
+                            .setMinVideoSize(userSelectedFormat.width, userSelectedFormat.height)
+                            .setMinVideoBitrate(userSelectedFormat.bitrate)
+                            .setMaxVideoSize(userSelectedFormat.width, userSelectedFormat.height)
+                            .setMaxVideoBitrate(userSelectedFormat.bitrate)
+                            .build()
+
+
+                        val estimatedContentLength: Long =
+                            (qualitySelected.maxVideoBitrate * mediaItemTag.duration)
+                                .div(C.MILLIS_PER_SECOND).div(C.BITS_PER_BYTE)
+
+                        if (availableBytesLeft >estimatedContentLength){
+                            val downloadRequest = downloadHelper.getDownloadRequest(
+                                (mediaItem.localConfiguration?.tag as MediaItemTag).title,
+                                Util.getUtf8Bytes(estimatedContentLength.toString())
+                            )
+                            startDownload(downloadRequest)
+                            availableBytesLeft -= estimatedContentLength
+                        }else{
+                            Toast.makeText(
+                                context,
+                                "Not enough space to download this file",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
+                }
+
+                /**
+                 * this else statement will show the quality selection dialog to the user
+                 * this dialog will only appear if the user has not selected a quality
+                 * and the developer has not entered a quality at client level
+                 */
+                else {
                     show()
                 }
             }
