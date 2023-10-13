@@ -237,11 +237,11 @@ private fun download(
                     .hasDownload(item.localConfiguration?.uri)
             ) {
                 DownloadUtil.getDownloadTracker(context)
-                    .toggleDownloadDialogHelper(context, item, quality = 1080 )
+                    .toggleDownloadDialogHelper(context, item, quality = 10 )
 
                 val savedQuality = DownloadUtil.getQualitySelected(context)
 
-                if (savedQuality!= null){
+                if (savedQuality>0){
                     Log.d(
                         "Noobie",
                         "download: $savedQuality"

@@ -204,22 +204,16 @@ object DownloadUtil {
     fun saveQualitySelected(
         context: Context,
         height: Int,
-        qualitySelected: DefaultTrackSelector.Parameters
     ) {
         val sharedPreferences = context.getSharedPreferences("quality", Context.MODE_PRIVATE)
         val editor = sharedPreferences.edit()
-        val qualitySelectedString = qualitySelected.toString()
         editor.putInt("height", height)
-        //add the quality selected to the shared preferences
-        editor.putString("qualitySelected", qualitySelectedString)
-
-
         editor.apply()
     }
 
-    fun getQualitySelected(context: Context): String? {
+    fun getQualitySelected(context: Context): Int {
         val sharedPreferences = context.getSharedPreferences("quality", Context.MODE_PRIVATE)
-        return sharedPreferences.getString("qualitySelected", null)
+        return sharedPreferences.getInt("height", 0)
     }
 
 

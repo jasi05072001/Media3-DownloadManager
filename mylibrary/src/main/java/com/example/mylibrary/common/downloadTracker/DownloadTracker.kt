@@ -5,8 +5,6 @@ import android.content.Context
 import android.net.Uri
 import android.os.StatFs
 import android.util.Log
-import android.view.View
-import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.media3.common.C
@@ -135,52 +133,6 @@ class DownloadTracker(
                 dismissCallback,
                 quality
             )
-    }
-
-    fun toggleDownloadPopupMenu(context: Context, anchor: View, uri: Uri?) {
-        val popupMenu = PopupMenu(context, anchor).apply { inflate(R.menu.popup_menu) }
-        val download = downloads[uri]
-        download ?: return
-
-        popupMenu.menu.apply {
-            findItem(R.id.cancel_download).isVisible =
-                listOf(
-                    Download.STATE_DOWNLOADING,
-                    Download.STATE_STOPPED,
-                    Download.STATE_QUEUED,
-                    Download.STATE_FAILED
-                ).contains(download.state)
-            findItem(R.id.delete_download).isVisible = download.state == Download.STATE_COMPLETED
-            findItem(R.id.resume_download).isVisible =
-                listOf(Download.STATE_STOPPED, Download.STATE_FAILED).contains(download.state)
-            findItem(R.id.pause_download).isVisible = download.state == Download.STATE_DOWNLOADING
-        }
-
-        popupMenu.setOnMenuItemClickListener {
-            when (it.itemId) {
-                R.id.cancel_download, R.id.delete_download -> removeDownload(download.request.uri)
-                R.id.resume_download -> {
-                    DownloadService.sendSetStopReason(
-                        context,
-                        MyDownloadService::class.java,
-                        download.request.id,
-                        Download.STOP_REASON_NONE,
-                        true
-                    )
-                }
-                R.id.pause_download -> {
-                    DownloadService.sendSetStopReason(
-                        context,
-                        MyDownloadService::class.java,
-                        download.request.id,
-                        Download.STATE_STOPPED,
-                        false
-                    )
-                }
-            }
-            return@setOnMenuItemClickListener true
-        }
-        popupMenu.show()
     }
 
     fun removeDownload(uri: Uri?) {
@@ -375,16 +327,13 @@ class DownloadTracker(
                     (it.bitrate * mediaItemTag.duration).div(8000).formatFileSize()
                 )
             }
-            val qualityLis = formatDownloadable.map { it.bitrate }
+            val qualityLis = formatDownloadable.map { it.height }
 
             closestElement = qualityLis.minByOrNull { abs(it - userQuality!!) }!!
 
-            val result = "Closest element to $userQuality is $closestElement"
-            Log.e("Closed", result)
-
             //Default quality download
             qualitySelected = DefaultTrackSelector(context).buildUponParameters()
-                .setMinVideoSize(formatDownloadable[0].width, closestElement)
+                .setMinVideoSize(formatDownloadable[0].width, formatDownloadable[0].height)
                 .setMinVideoBitrate(formatDownloadable[0].bitrate)
                 .setMaxVideoSize(formatDownloadable[0].width, formatDownloadable[0].height)
                 .setMaxVideoBitrate(formatDownloadable[0].bitrate)
@@ -399,14 +348,14 @@ class DownloadTracker(
                         .setMaxVideoSize(format.width, format.height)
                         .setMaxVideoBitrate(format.bitrate)
                         .build()
-                    Log.e(TAG, "format Selected= width: ${format.width}, height: ${format.height}, qualitySelected:${qualitySelected}",)
+                    Log.e(TAG, "format Selected= width: ${format.width}, height: ${format.height}, qualitySelected:${qualitySelected}")
 
 
                     /**
                      * This function will save the quality selected by the user
                      * in the shared preferences
                      */
-                    DownloadUtil.saveQualitySelected(context, format.height,qualitySelected)
+                    DownloadUtil.saveQualitySelected(context, format.height)
 
                 }.setPositiveButton("Download") { _, _ ->
                     val height = DownloadUtil.getQualitySelected(context)
@@ -439,7 +388,45 @@ class DownloadTracker(
                     downloadHelper.release()
                     dismissCallback?.invoke()
                 }
-            trackSelectionDialog = dialogBuilder.create().apply { show() }
+            trackSelectionDialog = dialogBuilder.create().apply {
+
+                if(DownloadUtil.getQualitySelected(context)>0){
+                    dismiss()
+                    val savedQuality = DownloadUtil.getQualitySelected(context)
+                    val selectedFormat = findSelectedFormat(formatDownloadable, savedQuality)
+                    if (selectedFormat != null) {
+                        qualitySelected = DefaultTrackSelector(context).buildUponParameters()
+                            .setMinVideoSize(selectedFormat.width, selectedFormat.height)
+                            .setMinVideoBitrate(selectedFormat.bitrate)
+                            .setMaxVideoSize(selectedFormat.width, selectedFormat.height)
+                            .setMaxVideoBitrate(selectedFormat.bitrate)
+                            .build()
+
+
+                        val estimatedContentLength: Long =
+                            (qualitySelected.maxVideoBitrate * mediaItemTag.duration)
+                                .div(C.MILLIS_PER_SECOND).div(C.BITS_PER_BYTE)
+
+                        if (availableBytesLeft >estimatedContentLength){
+                            val downloadRequest = downloadHelper.getDownloadRequest(
+                                (mediaItem.localConfiguration?.tag as MediaItemTag).title,
+                                Util.getUtf8Bytes(estimatedContentLength.toString())
+                            )
+                            startDownload(downloadRequest)
+                            availableBytesLeft -= estimatedContentLength
+                        }else{
+                            Toast.makeText(
+                                context,
+                                "Not enough space to download this file",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
+
+                }else{
+                    show()
+                }
+            }
         }
 
         override fun onPrepareError(helper: DownloadHelper, e: IOException) {
@@ -462,12 +449,20 @@ class DownloadTracker(
             )
         }
 
+
         private fun buildDownloadRequest(): DownloadRequest {
             return downloadHelper.getDownloadRequest(
                 (mediaItem.localConfiguration?.tag as MediaItemTag).title,
                 Util.getUtf8Bytes(mediaItem.localConfiguration?.uri.toString())
             )
         }
+    }
+
+    private fun findSelectedFormat(formats: MutableList<Format>, savedQuality: Int): Format? {
+        return formats.find {
+            it.height == savedQuality
+        }
+
     }
 
 
