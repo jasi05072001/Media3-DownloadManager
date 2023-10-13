@@ -19,6 +19,7 @@ import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadManager
 import androidx.media3.exoplayer.offline.DownloadNotificationHelper
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
+import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import com.example.mylibrary.R
 import com.example.mylibrary.common.downloadTracker.DownloadTracker
 import org.chromium.net.CronetEngine
@@ -198,6 +199,27 @@ object DownloadUtil {
                 mediaItem
             )
         return mediaSource
+    }
+
+    fun saveQualitySelected(
+        context: Context,
+        height: Int,
+        qualitySelected: DefaultTrackSelector.Parameters
+    ) {
+        val sharedPreferences = context.getSharedPreferences("quality", Context.MODE_PRIVATE)
+        val editor = sharedPreferences.edit()
+        val qualitySelectedString = qualitySelected.toString()
+        editor.putInt("height", height)
+        //add the quality selected to the shared preferences
+        editor.putString("qualitySelected", qualitySelectedString)
+
+
+        editor.apply()
+    }
+
+    fun getQualitySelected(context: Context): String? {
+        val sharedPreferences = context.getSharedPreferences("quality", Context.MODE_PRIVATE)
+        return sharedPreferences.getString("qualitySelected", null)
     }
 
 

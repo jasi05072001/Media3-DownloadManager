@@ -46,6 +46,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 import java.util.concurrent.CopyOnWriteArraySet
+import kotlin.math.abs
 
 
 private const val TAG = "DownloadTracker"
@@ -298,8 +299,10 @@ class DownloadTracker(
         }
     }
 
-    // Can't use applicationContext because it'll result in a crash, instead
-    // Use context of the activity calling for the AlertDialog
+    /**
+    Can't use applicationContext because it'll result in a crash, instead
+    Use context of the activity calling for the AlertDialog
+     */
     private inner class StartDownloadHlsDialogHelper(
         private val context: Context,
         private val downloadHelper: DownloadHelper,
@@ -310,6 +313,9 @@ class DownloadTracker(
     ) : DownloadHelper.Callback {
 
         private var trackSelectionDialog: AlertDialog? = null
+        var userQuality : Int? = quality
+
+        var closestElement = 0
 
         init {
             downloadHelper.prepare(this)
@@ -369,10 +375,16 @@ class DownloadTracker(
                     (it.bitrate * mediaItemTag.duration).div(8000).formatFileSize()
                 )
             }
+            val qualityLis = formatDownloadable.map { it.bitrate }
+
+            closestElement = qualityLis.minByOrNull { abs(it - userQuality!!) }!!
+
+            val result = "Closest element to $userQuality is $closestElement"
+            Log.e("Closed", result)
 
             //Default quality download
             qualitySelected = DefaultTrackSelector(context).buildUponParameters()
-                .setMinVideoSize(formatDownloadable[0].width, formatDownloadable[0].height)
+                .setMinVideoSize(formatDownloadable[0].width, closestElement)
                 .setMinVideoBitrate(formatDownloadable[0].bitrate)
                 .setMaxVideoSize(formatDownloadable[0].width, formatDownloadable[0].height)
                 .setMaxVideoBitrate(formatDownloadable[0].bitrate)
@@ -387,8 +399,20 @@ class DownloadTracker(
                         .setMaxVideoSize(format.width, format.height)
                         .setMaxVideoBitrate(format.bitrate)
                         .build()
-                    Log.e(TAG, "format Selected= width: ${format.width}, height: ${format.height}")
+                    Log.e(TAG, "format Selected= width: ${format.width}, height: ${format.height}, qualitySelected:${qualitySelected}",)
+
+
+                    /**
+                     * This function will save the quality selected by the user
+                     * in the shared preferences
+                     */
+                    DownloadUtil.saveQualitySelected(context, format.height,qualitySelected)
+
                 }.setPositiveButton("Download") { _, _ ->
+                    val height = DownloadUtil.getQualitySelected(context)
+                    //log the value of height and width
+                    Log.e(TAG, "height: $height")
+
                     helper.clearTrackSelections(0)
                     helper.addTrackSelection(0, qualitySelected)
                     val estimatedContentLength: Long =
@@ -399,7 +423,7 @@ class DownloadTracker(
                             (mediaItem.localConfiguration?.tag as MediaItemTag).title,
                             Util.getUtf8Bytes(estimatedContentLength.toString())
                         )
-                        startDownload(downloadRequest)
+                      startDownload(downloadRequest)
                         availableBytesLeft -= estimatedContentLength
                         Log.e(TAG, "availableBytesLeft after calculation: $availableBytesLeft")
                     } else {

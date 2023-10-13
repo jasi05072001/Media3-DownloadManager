@@ -49,4 +49,6 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer-dash:$version")
     implementation("androidx.media3:media3-exoplayer-hls:$version")
     implementation("androidx.media3:media3-datasource-cronet:$version")
+
+    implementation ("com.google.code.gson:gson:2.10.1")
 }

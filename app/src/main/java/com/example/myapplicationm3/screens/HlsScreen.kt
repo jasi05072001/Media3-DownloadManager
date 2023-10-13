@@ -1,6 +1,7 @@
 package com.example.myapplicationm3.screens
 
 import android.content.Context
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -236,7 +237,24 @@ private fun download(
                     .hasDownload(item.localConfiguration?.uri)
             ) {
                 DownloadUtil.getDownloadTracker(context)
-                    .toggleDownloadDialogHelper(context, item)
+                    .toggleDownloadDialogHelper(context, item, quality = 1080 )
+
+                val savedQuality = DownloadUtil.getQualitySelected(context)
+
+                if (savedQuality!= null){
+                    Log.d(
+                        "Noobie",
+                        "download: $savedQuality"
+                    )
+                }
+
+
+
+//                space errors
+
+//                user downloads each time don't show quality selection every time if space is full then error popup
+
+
                 Toast.makeText(context, "Downloading....", Toast.LENGTH_SHORT).show()
             }
         }

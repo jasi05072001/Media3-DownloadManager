@@ -12,7 +12,7 @@ fun Navigator() {
     NavHost(
         navController = navController,
         startDestination = Screens.MainScreen.route
-        ){
+    ){
         composable(Screens.MainScreen.route){
             MainScreen(navController)
         }
@@ -27,3 +27,7 @@ fun Navigator() {
         }
     }
 }
+
+
+
+//https://docs.google.com/document/d/1L-5bg8_f9ZlY1KkXK58cwK1oO2E6lLzgMK0nRCeYYO4/edit?usp=sharing
