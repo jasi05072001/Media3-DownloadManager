@@ -5,7 +5,6 @@ import android.content.Context
 import android.net.Uri
 import android.os.StatFs
 import android.util.Log
-import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.media3.common.C
 import androidx.media3.common.Format
@@ -29,7 +28,10 @@ import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.offline.DownloadService
 import androidx.media3.exoplayer.source.TrackGroupArray
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
+import androidx.media3.exoplayer.trackselection.MappingTrackSelector
 import com.example.mylibrary.R
+import com.example.mylibrary.common.exceptions.FailedToDownloadException
+import com.example.mylibrary.common.exceptions.NotEnoughSpaceException
 import com.example.mylibrary.common.service.MyDownloadService
 import com.example.mylibrary.common.utils.DownloadUtil
 import com.example.mylibrary.common.utils.MediaItemTag
@@ -50,6 +52,7 @@ import java.util.concurrent.CopyOnWriteArraySet
 private const val TAG = "DownloadTracker"
 private const val DEFAULT_BITRATE = 500_000
 
+@ExperimentalCoroutinesApi
 @SuppressLint("UnsafeOptInUsageError")
 class DownloadTracker(
     context: Context,
@@ -103,20 +106,20 @@ class DownloadTracker(
     fun removeListener(listener: Listener) {
         listeners.remove(listener)
     }
-
+    @ExperimentalStdlibApi
     fun isDownloaded(mediaItem: MediaItem): Boolean {
         val download = downloads[mediaItem.localConfiguration?.uri]
         return download != null && download.state == Download.STATE_COMPLETED
     }
-
+    @ExperimentalStdlibApi
     fun hasDownload(uri: Uri?): Boolean = downloads.keys.contains(uri)
-
+    @ExperimentalStdlibApi
     fun getDownloadRequest(uri: Uri?): DownloadRequest? {
         uri ?: return null
         val download = downloads[uri]
         return if(download != null && download.state != Download.STATE_FAILED) download.request else null
     }
-
+    @ExperimentalStdlibApi
     fun toggleDownloadDialogHelper(
         context: Context, mediaItem: MediaItem,
         positiveCallback: (() -> Unit)? = null, dismissCallback: (() -> Unit)? = null,
@@ -134,7 +137,7 @@ class DownloadTracker(
                 quality
             )
     }
-
+    @ExperimentalStdlibApi
     fun removeDownload(uri: Uri?) {
         val download = downloads[uri]
         download?.let {
@@ -146,6 +149,8 @@ class DownloadTracker(
             )
         }
     }
+
+    @ExperimentalStdlibApi
     fun pauseDownload(uri: Uri?) {
         val download = downloads[uri]
         download?.let {
@@ -156,6 +161,7 @@ class DownloadTracker(
             )
         }
     }
+    @ExperimentalStdlibApi
     fun resumeDownload(uri: Uri?) {
         val download = downloads[uri]
         download?.let {
@@ -262,7 +268,9 @@ class DownloadTracker(
         private val positiveCallback: (() -> Unit)? = null,
         private val dismissCallback: (() -> Unit)? = null,
         quality: Int?
-    ) : DownloadHelper.Callback {
+    ) :
+
+        DownloadHelper.Callback {
 
         private var trackSelectionDialog: AlertDialog? = null
         var userQuality : Int? = quality
@@ -297,17 +305,7 @@ class DownloadTracker(
             var qualitySelected: DefaultTrackSelector.Parameters
             val mappedTrackInfo = downloadHelper.getMappedTrackInfo(0)
 
-            for (i in 0 until mappedTrackInfo.rendererCount) {
-                if(C.TRACK_TYPE_VIDEO == mappedTrackInfo.getRendererType(i)) {
-                    val trackGroups: TrackGroupArray = mappedTrackInfo.getTrackGroups(i)
-                    for (j in 0 until trackGroups.length) {
-                        val trackGroup: TrackGroup = trackGroups[j]
-                        for (k in 0 until trackGroup.length) {
-                            formatDownloadable.add(trackGroup.getFormat(k))
-                        }
-                    }
-                }
-            }
+            getTracks(mappedTrackInfo, formatDownloadable)
 
             if(formatDownloadable.isEmpty()) {
                 dialogBuilder.setTitle("An error occurred")
@@ -352,11 +350,10 @@ class DownloadTracker(
                      * in the shared preferences
                      */
                     DownloadUtil.saveQualitySelected(context, format.height)
-
                 }.setPositiveButton("Download") { _, _ ->
                     val height = DownloadUtil.getQualitySelected(context)
                     //log the value of height and width
-                    Log.e(TAG, "height: $height")
+                    Log.e("Value in db11", "height: $height")
 
                     helper.clearTrackSelections(0)
                     helper.addTrackSelection(0, qualitySelected)
@@ -372,11 +369,7 @@ class DownloadTracker(
                         availableBytesLeft -= estimatedContentLength
                         Log.e(TAG, "availableBytesLeft after calculation: $availableBytesLeft")
                     } else {
-                        Toast.makeText(
-                            context,
-                            "Not enough space to download this file",
-                            Toast.LENGTH_LONG
-                        ).show()
+                        throw NotEnoughSpaceException("Not enough space to download this file")
                     }
                     positiveCallback?.invoke()
                 }.setOnDismissListener {
@@ -417,11 +410,7 @@ class DownloadTracker(
                             startDownload(downloadRequest)
                             availableBytesLeft -= estimatedContentLength
                         }else{
-                            Toast.makeText(
-                                context,
-                                "Not enough space to download this file",
-                                Toast.LENGTH_LONG
-                            ).show()
+                            throw NotEnoughSpaceException("Not enough space to download this file")
                         }
                     }
 
@@ -458,11 +447,7 @@ class DownloadTracker(
                             startDownload(downloadRequest)
                             availableBytesLeft -= estimatedContentLength
                         }else{
-                            Toast.makeText(
-                                context,
-                                "Not enough space to download this file",
-                                Toast.LENGTH_LONG
-                            ).show()
+                            throw NotEnoughSpaceException("Not enough space to download this file")
                         }
                     }
                 }
@@ -478,14 +463,25 @@ class DownloadTracker(
             }
         }
 
+        private fun getTracks(
+            mappedTrackInfo: MappingTrackSelector.MappedTrackInfo,
+            formatDownloadable: MutableList<Format>
+        ) {
+            for (i in 0 until mappedTrackInfo.rendererCount) {
+                if (C.TRACK_TYPE_VIDEO == mappedTrackInfo.getRendererType(i)) {
+                    val trackGroups: TrackGroupArray = mappedTrackInfo.getTrackGroups(i)
+                    for (j in 0 until trackGroups.length) {
+                        val trackGroup: TrackGroup = trackGroups[j]
+                        for (k in 0 until trackGroup.length) {
+                            formatDownloadable.add(trackGroup.getFormat(k))
+                        }
+                    }
+                }
+            }
+        }
+
         override fun onPrepareError(helper: DownloadHelper, e: IOException) {
-            Toast.makeText(applicationContext, R.string.download_start_error, Toast.LENGTH_LONG)
-                .show()
-            Log.e(
-                TAG,
-                if (e is DownloadHelper.LiveContentUnsupportedException) "Downloading live content unsupported" else "Failed to start download",
-                e
-            )
+            throw FailedToDownloadException("Failed to download")
         }
 
         // Internal methods.

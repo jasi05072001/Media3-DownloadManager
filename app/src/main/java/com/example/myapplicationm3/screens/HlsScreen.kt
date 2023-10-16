@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalStdlibApi::class)
+
 package com.example.myapplicationm3.screens
 
 import android.content.Context
@@ -22,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -40,6 +43,7 @@ import androidx.navigation.NavHostController
 import com.example.myapplicationm3.R
 import com.example.mylibrary.common.utils.DownloadUtil
 import com.example.mylibrary.common.utils.MediaItemTag
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -81,6 +85,7 @@ fun  HlsScreen(navController: NavHostController) {
 
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @UnstableApi
 @Composable
 fun HlsPlayer() {
@@ -97,6 +102,9 @@ fun HlsPlayer() {
 
 
     val context = LocalContext.current
+    val isBtnEnabled = remember {
+        mutableStateOf(false)
+    }
 
 
     val exoPlayer = remember {
@@ -110,6 +118,14 @@ fun HlsPlayer() {
                 }
                 override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
                     Toast.makeText(context, mediaMetadata.title, Toast.LENGTH_SHORT).show()
+                }
+
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    super.onPlaybackStateChanged(playbackState)
+                    if (playbackState == Player.STATE_READY){
+                        isBtnEnabled.value = true
+                    }
+
                 }
             })
         }
@@ -142,6 +158,7 @@ fun HlsPlayer() {
         ) {
 
             Button(
+                enabled = isBtnEnabled.value,
                 onClick = {
                     download(context, mediaItem, exoPlayer)
                 }
@@ -149,6 +166,7 @@ fun HlsPlayer() {
                 Text(text = "Download")
             }
             Button(
+                enabled = isBtnEnabled.value,
                 onClick = {
                     DownloadUtil.getDownloadTracker(context)
                         .pauseDownload(mediaItem.localConfiguration?.uri)
@@ -164,6 +182,7 @@ fun HlsPlayer() {
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             Button(
+                enabled = isBtnEnabled.value,
                 onClick = {
                     DownloadUtil.getDownloadTracker(context)
                         .resumeDownload(mediaItem.localConfiguration?.uri)
@@ -173,6 +192,7 @@ fun HlsPlayer() {
             }
 
             Button(
+                enabled = isBtnEnabled.value,
                 onClick = {
                     DownloadUtil.getDownloadTracker(context)
                         .removeDownload(mediaItem.localConfiguration?.uri)
@@ -181,28 +201,6 @@ fun HlsPlayer() {
                 Text(text = "Remove")
             }
         }
-//            Spacer(modifier = Modifier.height(10.dp))
-//            Button(modifier = Modifier
-//                .padding(horizontal = 15.dp)
-//                .fillMaxWidth(),
-//                onClick = {
-//
-//                    val list = listOf(240, 480, 720, 1080)
-//                    val a = 620
-//
-//                    // Find the closest element in the list to 'a'
-//                    val closestElement = list.minByOrNull { abs(it - a) }
-//
-//                    if (closestElement != null) {
-//                        val result = "Closest element to $a is $closestElement"
-//                        println(result)
-//                    } else {
-//                        println("The list is empty")
-//                    }
-//
-//                }) {
-//                Text(text = "Closest")
-//            }
     }
     Spacer(modifier = Modifier.height(15.dp))
 
@@ -217,6 +215,7 @@ fun HlsPlayer() {
 }
 
 
+@OptIn(ExperimentalCoroutinesApi::class)
 private fun download(
     context: Context,
     mediaItem: MediaItem,
@@ -238,24 +237,6 @@ private fun download(
             ) {
                 DownloadUtil.getDownloadTracker(context)
                     .toggleDownloadDialogHelper(context, item )
-
-                val savedQuality = DownloadUtil.getQualitySelected(context)
-
-                if (savedQuality>0){
-                    Log.d(
-                        "Noobie",
-                        "download: $savedQuality"
-                    )
-                }
-
-
-
-//                space errors
-
-//                user downloads each time don't show quality selection every time if space is full then error popup
-
-
-                Toast.makeText(context, "Downloading....", Toast.LENGTH_SHORT).show()
             }
         }
     } catch (e: Exception) {
