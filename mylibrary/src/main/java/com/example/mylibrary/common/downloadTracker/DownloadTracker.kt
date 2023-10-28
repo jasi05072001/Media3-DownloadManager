@@ -5,6 +5,7 @@ import android.content.Context
 import android.net.Uri
 import android.os.StatFs
 import android.util.Log
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.media3.common.C
 import androidx.media3.common.Format
@@ -15,11 +16,13 @@ import androidx.media3.common.util.Assertions
 import androidx.media3.common.util.Util
 import androidx.media3.database.DatabaseProvider
 import androidx.media3.database.StandaloneDatabaseProvider
+import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.NoOpCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.exoplayer.DefaultRenderersFactory
+import androidx.media3.exoplayer.RenderersFactory
 import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadHelper
 import androidx.media3.exoplayer.offline.DownloadIndex
@@ -37,6 +40,7 @@ import com.example.mylibrary.common.utils.DownloadUtil
 import com.example.mylibrary.common.utils.MediaItemTag
 import com.example.mylibrary.common.utils.formatFileSize
 import com.example.mylibrary.common.utils.returnClosestElement
+import com.google.gson.JsonObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -137,6 +141,80 @@ class DownloadTracker(
                 quality
             )
     }
+
+    fun downloadDrmContent(mediaItem:MediaItem.Builder,context: Context){
+        val setMultiSession = true
+        val renderFactory :RenderersFactory = buildRendersFactory(context,setMultiSession)
+        val defaultHttpDataSource = DefaultHttpDataSource.Factory()
+        toggleDownload(
+            mediaItem.build(),
+            context,
+            renderFactory,
+            defaultHttpDataSource
+        )
+    }
+
+    private fun toggleDownload(
+        builder: MediaItem,
+        context: Context,
+        renderFactory: RenderersFactory,
+        defaultHttpDataSource: DefaultHttpDataSource.Factory
+    ) {
+        val helper = DownloadHelper.forMediaItem(
+            context,
+            builder,
+            renderFactory,
+            defaultHttpDataSource
+
+        )
+        helper.prepare(object:DownloadHelper.Callback{
+            override fun onPrepared(helper: DownloadHelper) {
+                val json = JsonObject()
+                val uniqueId = System.currentTimeMillis().toString()
+                json.addProperty("uniqueId",uniqueId)
+                val downloadRequest =
+                    helper.getDownloadRequest(uniqueId, Util.getUtf8Bytes(json.toString()))
+                DownloadService.sendAddDownload(
+                    context,
+                    MyDownloadService::class.java,
+                    downloadRequest,
+                    true
+                )
+            }
+
+            override fun onPrepareError(helper: DownloadHelper, e: IOException) {
+                Toast.makeText(context, "Error", Toast.LENGTH_SHORT).show()
+            }
+        })
+    }
+
+    @SuppressLint("UnsafeOptInUsageError")
+    private fun buildRendersFactory(
+        context : Context,
+        preferExtensionRender:Boolean
+    ): RenderersFactory {
+        val demo = false
+
+        fun useExtensionRenderers(): Boolean {
+            return demo
+        }
+
+
+        val extensionRenderMode = if (useExtensionRenderers()){
+            if (preferExtensionRender){
+                DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
+            }else{
+                DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON
+            }
+        }
+        else {
+            DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF
+        }
+
+        return  DefaultRenderersFactory(context.applicationContext)
+            .setExtensionRendererMode(extensionRenderMode)
+    }
+
     @ExperimentalStdlibApi
     fun removeDownload(uri: Uri?) {
         val download = downloads[uri]
