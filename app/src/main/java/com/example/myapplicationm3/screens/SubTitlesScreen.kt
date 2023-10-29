@@ -2,9 +2,7 @@
 
 package com.example.myapplicationm3.screens
 
-import android.content.Context
 import android.net.Uri
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -36,11 +34,11 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaItem.DrmConfiguration
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.ui.PlayerView
 import androidx.navigation.NavHostController
 import com.example.myapplicationm3.R
@@ -98,32 +96,36 @@ fun SubTitlesPlayer() {
     val url = "https://www.4sync.com/web/directDownload/ROGREMlQ/nAXet_ZV.c002de9de273dae17b829f1f7370ce1f"
 
 
-    val mediaItem= MediaItem.Builder()
-        .setUri(url)
-        .setMimeType("video/x-matroska")
-        .setMediaMetadata(
-            MediaMetadata.Builder().setTitle("Meta data").build()
-        )
-
-        .build()
+//    val mediaItem= MediaItem.Builder()
+//        .setUri(url)
+//        .setMimeType("video/x-matroska")
+//        .setMediaMetadata(
+//            MediaMetadata.Builder().setTitle("Meta data").build()
+//        )
+//
+//        .build()
 
     val uri = "https://storage.googleapis.com/wvmedia/cenc/hevc/tears/tears.mpd"
     val licenceUrl = "https://proxy.uat.widevine.com/proxy?video_id=2015_tears&provider=widevine_test"
 
-    val mediaItem2 =   MediaItem.Builder()
-        .setUri(Uri.parse(uri))
-        .setTag(MediaItemTag(-1, "Meta data"))
+    val mediaItem =   MediaItem.Builder()
+        .setUri(uri)
+        .setMimeType(MimeTypes.APPLICATION_MPD)
+        .setMediaMetadata(
+            MediaMetadata.Builder().setTitle("Meta data").build()
+        )
         .setDrmConfiguration(
             DrmConfiguration.Builder(C.WIDEVINE_UUID)
                 .setLicenseUri(Uri.parse(licenceUrl))
                 .setMultiSession(true)
                 .build()
         )
+        .setTag(MediaItemTag(-1, "Meta data"))
         .build()
 
-     val isBtnEnabled = remember {
-         mutableStateOf(false)
-     }
+    val isBtnEnabled = remember {
+        mutableStateOf(false)
+    }
 
     val context = LocalContext.current
 
@@ -131,7 +133,7 @@ fun SubTitlesPlayer() {
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
             playWhenReady = true
-            setMediaItem(mediaItem2)
+            setMediaItem(mediaItem)
             prepare()
             addListener(object : Player.Listener {
                 override fun onPlayerError(error: PlaybackException) {
@@ -181,7 +183,7 @@ fun SubTitlesPlayer() {
             Button(
                 enabled = isBtnEnabled.value,
                 onClick = {
-                   DownloadUtil.getDownloadTracker(context).downloadDrmContent(mediaItem2.buildUpon(),context)
+                    download(context, mediaItem, exoPlayer)
                 }
             ) {
                 Text(text = "Download")
@@ -190,7 +192,7 @@ fun SubTitlesPlayer() {
                 enabled = isBtnEnabled.value,
                 onClick = {
                     DownloadUtil.getDownloadTracker(context)
-                        .pauseDownload(mediaItem2.localConfiguration?.uri)
+                        .pauseDownload(mediaItem.localConfiguration?.uri)
                 }
             ) {
                 Text(text = "Pause")
@@ -206,7 +208,7 @@ fun SubTitlesPlayer() {
                 enabled = isBtnEnabled.value,
                 onClick = {
                     DownloadUtil.getDownloadTracker(context)
-                        .resumeDownload(mediaItem2.localConfiguration?.uri)
+                        .resumeDownload(mediaItem.localConfiguration?.uri)
                 }
             ) {
                 Text(text = "Resume")
@@ -216,8 +218,7 @@ fun SubTitlesPlayer() {
                 enabled = isBtnEnabled.value,
                 onClick = {
                     DownloadUtil.getDownloadTracker(context)
-                        .removeDownload(mediaItem2.localConfiguration?.uri)
-                    Log.d("mediaType", mediaItem2.localConfiguration?.mimeType.toString())
+                        .removeDownload(mediaItem.localConfiguration?.uri)
                 }
             ) {
                 Text(text = "Remove")
@@ -236,55 +237,3 @@ fun SubTitlesPlayer() {
 
 }
 
-
-private fun download(
-    context: Context,
-    mediaItem: MediaItem,
-    exoPlayer: ExoPlayer
-) {
-    try {
-        if (DownloadUtil.getDownloadTracker(context).isDownloaded(mediaItem)) {
-            Toast.makeText(context, "Already Downloaded", Toast.LENGTH_SHORT).show()
-        } else {
-            val item = mediaItem.buildUpon()
-                .setTag(
-                    (mediaItem.localConfiguration?.tag as MediaItemTag)
-                        .copy(duration = exoPlayer.duration)
-                )
-                .build()
-
-            if (!DownloadUtil.getDownloadTracker(context)
-                    .hasDownload(item.localConfiguration?.uri)
-            ) {
-                DownloadUtil.getDownloadTracker(context)
-                    .toggleDownloadDialogHelper(context, item)
-                Toast.makeText(context, "Downloading....", Toast.LENGTH_SHORT).show()
-            }
-        }
-    } catch (e: Exception) {
-        Toast.makeText(context, e.message.toString(), Toast.LENGTH_SHORT).show()
-        Log.d("ERROR", "download: ${e.message}")
-    }
-}
-
-//@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
-//private fun  maybeSetDownloadProperties(item: MediaItem, downloadRequest: DownloadRequest?): MediaItem {
-//    if (downloadRequest == null) {
-//        return item
-//    }
-//    val builder = item.buildUpon()
-//        .setMediaId(downloadRequest.id)
-//        .setUri(downloadRequest.uri)
-//        .setCustomCacheKey(downloadRequest.customCacheKey)
-//        .setMimeType(downloadRequest.mimeType)
-//        .setStreamKeys(downloadRequest.streamKeys)
-//
-//
-//    val drmConfiguration = item.localConfiguration!!.drmConfiguration
-//    if (drmConfiguration != null) {
-//        builder.setDrmConfiguration(
-//            drmConfiguration.buildUpon().setKeySetId(downloadRequest.keySetId).setLicenseUri(Uri.parse("https://proxy.uat.widevine.com/proxy?video_id=2015_tears&provider=widevine_test")).build()
-//        )
-//    }
-//    return builder.build()
-//}

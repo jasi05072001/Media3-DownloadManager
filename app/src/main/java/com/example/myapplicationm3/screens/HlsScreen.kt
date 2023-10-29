@@ -216,7 +216,7 @@ fun HlsPlayer() {
 
 
 @OptIn(ExperimentalCoroutinesApi::class)
-private fun download(
+ fun download(
     context: Context,
     mediaItem: MediaItem,
     exoPlayer: ExoPlayer

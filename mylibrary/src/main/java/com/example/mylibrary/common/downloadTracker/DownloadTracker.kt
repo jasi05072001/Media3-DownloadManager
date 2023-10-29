@@ -96,6 +96,7 @@ class DownloadTracker(
         StatFs(DownloadUtil.getDownloadDirectory(context).path).availableBytes
 
     val downloads: HashMap<Uri, Download> = HashMap()
+    var selectedQuality :Int ?= null
 
     init {
         downloadManager.addListener(DownloadManagerListener())
@@ -142,82 +143,11 @@ class DownloadTracker(
             )
     }
 
-    fun downloadDrmContent(mediaItem:MediaItem.Builder,context: Context){
-        val setMultiSession = true
-        val renderFactory :RenderersFactory = buildRendersFactory(context,setMultiSession)
-        val defaultHttpDataSource = DefaultHttpDataSource.Factory()
-        toggleDownload(
-            mediaItem.build(),
-            context,
-            renderFactory,
-            defaultHttpDataSource
-        )
-    }
-
-    private fun toggleDownload(
-        builder: MediaItem,
-        context: Context,
-        renderFactory: RenderersFactory,
-        defaultHttpDataSource: DefaultHttpDataSource.Factory
-    ) {
-        val helper = DownloadHelper.forMediaItem(
-            context,
-            builder,
-            renderFactory,
-            defaultHttpDataSource
-
-        )
-        helper.prepare(object:DownloadHelper.Callback{
-            override fun onPrepared(helper: DownloadHelper) {
-                val json = JsonObject()
-                val uniqueId = System.currentTimeMillis().toString()
-                json.addProperty("uniqueId",uniqueId)
-                val downloadRequest =
-                    helper.getDownloadRequest(uniqueId, Util.getUtf8Bytes(json.toString()))
-                DownloadService.sendAddDownload(
-                    context,
-                    MyDownloadService::class.java,
-                    downloadRequest,
-                    true
-                )
-            }
-
-            override fun onPrepareError(helper: DownloadHelper, e: IOException) {
-                Toast.makeText(context, "Error", Toast.LENGTH_SHORT).show()
-            }
-        })
-    }
-
-    @SuppressLint("UnsafeOptInUsageError")
-    private fun buildRendersFactory(
-        context : Context,
-        preferExtensionRender:Boolean
-    ): RenderersFactory {
-        val demo = false
-
-        fun useExtensionRenderers(): Boolean {
-            return demo
-        }
-
-
-        val extensionRenderMode = if (useExtensionRenderers()){
-            if (preferExtensionRender){
-                DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
-            }else{
-                DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON
-            }
-        }
-        else {
-            DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF
-        }
-
-        return  DefaultRenderersFactory(context.applicationContext)
-            .setExtensionRendererMode(extensionRenderMode)
-    }
 
     @ExperimentalStdlibApi
     fun removeDownload(uri: Uri?) {
         val download = downloads[uri]
+        Log.d(TAG, "removeDownload: $uri")
         download?.let {
             DownloadService.sendRemoveDownload(
                 applicationContext,
@@ -242,6 +172,7 @@ class DownloadTracker(
     @ExperimentalStdlibApi
     fun resumeDownload(uri: Uri?) {
         val download = downloads[uri]
+        Log.d(TAG, "resumeDownload: $uri")
         download?.let {
             DownloadService.sendResumeDownloads(
                 applicationContext,
@@ -422,14 +353,17 @@ class DownloadTracker(
                         .build()
                     Log.e(TAG, "format Selected= width: ${format.width}, height: ${format.height}, qualitySelected:${qualitySelected}")
 
+                    selectedQuality = format.height
 
                     /**
                      * This function will save the quality selected by the user
                      * in the shared preferences
                      */
-                    DownloadUtil.saveQualitySelected(context, format.height)
+
                 }.setPositiveButton("Download") { _, _ ->
+                    selectedQuality?.let { DownloadUtil.saveQualitySelected(context, it) }
                     val height = DownloadUtil.getQualitySelected(context)
+
                     //log the value of height and width
                     Log.e("Value in db11", "height: $height")
 
